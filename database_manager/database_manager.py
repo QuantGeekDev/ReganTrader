@@ -1,13 +1,13 @@
 import logging
 from cryptography.fernet import Fernet
-from sqlalchemy import create_engine, Table, MetaData, Column, Integer, String, Boolean, Text, select, insert, delete
+from sqlalchemy import create_engine, Table, MetaData, Column, Integer, String, Boolean, Text, select, insert, delete, update
 from sqlalchemy.exc import SQLAlchemyError
 
 KEY = b'gkqJ7l5FqJvqe7MqaQSKG5Pl2KZvj2ho5Vgbv4E6UJQ='
 
 
 class DatabaseManager:
-    def __init__(self, db_path='sqlite:///historical_data.db'):
+    def __init__(self, db_path='sqlite:///trading_bot.db'):
         self.engine = create_engine(db_path, echo=True)
         self.metadata = MetaData()
         self.user_config = Table('user_config', self.metadata,
@@ -15,6 +15,9 @@ class DatabaseManager:
                                  Column('api_key', Text, nullable=False),
                                  Column('api_secret', Text, nullable=False),
                                  Column('paper', Boolean, nullable=False, default=False))
+        self.config = Table('config', self.metadata,
+                            Column('key', String, primary_key=True),
+                            Column('value', Text))
         self.metadata.create_all(self.engine)
 
     def create_table(self, table_name):

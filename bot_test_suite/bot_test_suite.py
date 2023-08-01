@@ -28,10 +28,9 @@ class BotTestSuite:
             print('Test 3/4')
 
         # Test the get_positions method
-        if account_manager.get_positions():
+        if account_manager.get_all_positions():
             print('Test 4/4')
         print('Account Manager Test Success')
-
 
     def data_provider_test(self):
         print('Running Data Provider Interface Test...')

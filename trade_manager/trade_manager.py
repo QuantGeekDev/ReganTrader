@@ -48,3 +48,12 @@ class TradeManager:
         except Exception as e:
             logging.error(f"Error canceling order for {symbol}: {e}")
             raise
+
+    def get_open_positions(self):
+        """Return all open positions."""
+        return self.open_positions
+
+    def update_open_positions(self):
+        """Updates the open positions using the AccountManager instance."""
+        positions = self.order_execution_engine.get_positions()
+        self.open_positions = {pos['symbol']: pos['qty'] for pos in positions}

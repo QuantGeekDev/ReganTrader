@@ -1,6 +1,5 @@
 import logging
 import importlib
-from database_manager.database_manager import DatabaseManager
 
 class StrategyManager:
     def __init__(self, db_manager):
