@@ -1,4 +1,6 @@
 import logging
+from threading import Thread
+import time
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import (
     LimitOrderRequest,
@@ -73,11 +75,71 @@ class OrderExecutionEngine:
             self.logger.error(f"Failed to close all positions: {e}")
             raise
 
-    def close_position(self, symbol_or_asset_id, close_options: ClosePositionRequest = None):
+    def get_positions(self):
+        """Get all the current open positions."""
         try:
-            response = self.trading_client.close_position(symbol_or_asset_id, close_options=close_options)
-            self.logger.info(f"Position for {symbol_or_asset_id} closed successfully.")
-            return response
+            positions = self.trading_client.get_all_positions()
+            self.logger.info("Fetched all open positions successfully.")
+            return positions
+        except Exception as e:
+            self.logger.error(f"Failed to fetch all open positions: {e}")
+            raise
+
+    def get_open_position_by_id(self, symbol_or_asset_id):
+        """Get the open position for a single asset."""
+        try:
+            position = self.trading_client.get_open_position(symbol_or_asset_id)
+            self.logger.info(f"Fetched open position for {symbol_or_asset_id} successfully.")
+            return position
+        except Exception as e:
+            self.logger.error(f"Failed to fetch open position for {symbol_or_asset_id}: {e}")
+            raise
+
+    def get_orders(self, filter=None):
+        """Get all orders."""
+        try:
+            orders = self.trading_client.get_orders(filter)
+            self.logger.info("Fetched all orders successfully.")
+            return orders
+        except Exception as e:
+            self.logger.error(f"Failed to fetch all orders: {e}")
+            raise
+
+    def get_order_by_id(self, order_id, filter=None):
+        """Get a specific order by its ID."""
+        try:
+            order = self.trading_client.get_order_by_id(order_id, filter)
+            self.logger.info(f"Fetched order {order_id} successfully.")
+            return order
+        except Exception as e:
+            self.logger.error(f"Failed to fetch order {order_id}: {e}")
+            raise
+
+    def cancel_order_by_id(self, order_id):
+        """Cancel a specific order by its ID."""
+        try:
+            self.trading_client.cancel_order_by_id(order_id)
+            self.logger.info(f"Cancelled order {order_id} successfully.")
+        except Exception as e:
+            self.logger.error(f"Failed to cancel order {order_id}: {e}")
+            raise
+
+    def replace_order_by_id(self, order_id, order_data=None):
+        """Replace a specific order by its ID."""
+        try:
+            updated_order = self.trading_client.replace_order_by_id(order_id, order_data)
+            self.logger.info(f"Replaced order {order_id} successfully.")
+            return updated_order
+        except Exception as e:
+            self.logger.error(f"Failed to replace order {order_id}: {e}")
+            raise
+
+    def close_position(self, symbol_or_asset_id, close_options=None):
+        """Close the position for a single asset."""
+        try:
+            closed_order = self.trading_client.close_position(symbol_or_asset_id, close_options)
+            self.logger.info(f"Closed position for {symbol_or_asset_id} successfully.")
+            return closed_order
         except Exception as e:
             self.logger.error(f"Failed to close position for {symbol_or_asset_id}: {e}")
             raise

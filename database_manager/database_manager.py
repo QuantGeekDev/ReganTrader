@@ -141,6 +141,50 @@ class DatabaseManager:
             logging.error(f"Error retrieving strategy: {e}")
             raise
 
+    def retrieve_configuration(self, key):
+        logging.info(f"Retrieving configuration {key}")
+        try:
+            with self.engine.begin() as connection:
+                result = connection.execute(
+                    select(self.config.c.value)
+                    .where(self.config.c.key == key))
+                row = result.fetchone()
+
+                if row is None:
+                    logging.info(f"No configuration found for key: {key}")
+                    return None
+
+                logging.debug(f"Retrieved configuration for key {key}: {row[0]}")
+                return row[0]
+        except SQLAlchemyError as e:
+            logging.error(f"Error retrieving configuration: {e}")
+            raise
+        except Exception as e:
+            logging.error(f"Unhandled error in retrieve_configuration: {e}")
+            raise
+
+    def insert_configuration(self, key, value):
+        logging.info(f"Inserting configuration {key}")
+        try:
+            with self.engine.begin() as connection:
+                # Update the configuration if it exists, else insert
+                update_stmt = (
+                    update(self.config)
+                    .where(self.config.c.key == key)
+                    .values(value=value)
+                    .execution_options(synchronize_session="fetch")
+                )
+
+                if connection.execute(update_stmt).rowcount == 0:
+                    connection.execute(insert(self.config).values(key=key, value=value))
+
+                logging.info(f"Configuration for key {key} updated successfully")
+        except SQLAlchemyError as e:
+            logging.error(f"Error inserting/updating configuration: {e}")
+            raise
+        except Exception as e:
+            logging.error(f"Unhandled error in insert_configuration: {e}")
+            raise
     @staticmethod
     def encrypt(data):
         fernet = Fernet(KEY)

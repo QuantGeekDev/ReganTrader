@@ -2,8 +2,9 @@ import logging
 import importlib
 
 class StrategyManager:
-    def __init__(self, db_manager):
+    def __init__(self, db_manager, settings):
         self.db_manager = db_manager
+        self.settings = settings
         self.strategy = None
         self.strategy_parameters = None
         self.strategy_registry = {}  # A registry of available strategies

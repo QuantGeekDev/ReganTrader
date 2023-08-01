@@ -1,4 +1,3 @@
-
 import time
 import logging
 from database_manager.database_manager import DatabaseManager
@@ -6,16 +5,17 @@ from data_provider_interface.data_provider_interface import DataProviderInterfac
 from strategy_manager.strategy_manager import StrategyManager
 from trade_manager.trade_manager import TradeManager
 
+
 class CoreBotEngine:
     def __init__(self):
         # Initialize the Database Management and get the last saved settings
         self.db_manager = DatabaseManager()
-        self.settings = self.db_manager.get_settings()
+        self.settings = self.db_manager.retrieve_configuration()
 
         # Initialize Data Provider Interface, Strategy Manager, and Trade Management
         self.data_provider = DataProviderInterface(self.settings)
         self.strategy_manager = StrategyManager(self.settings, self.db_manager)
-        self.trade_management = TradeManager(self.settings, self.db_manager)
+        self.trade_manager = TradeManager(self.settings, self.db_manager)
 
         # Flag to control the trading loop
         self.is_trading = False
@@ -45,7 +45,7 @@ class CoreBotEngine:
                 signals = strategy.execute(market_data)
 
                 # Process the signals
-                self.trade_management.process_signals(signals)
+                self.trade_manager.process_signals(signals)
 
                 # Sleep for a while before next iteration
                 time.sleep(self.settings['trading_interval'])
