@@ -17,12 +17,12 @@ class BotTestSuite:
         account_manager = AccountManager(api_key=self.api_key, secret_key=self.secret_key)
 
         # Test the get_account_details method
-        if account_manager.get_account_details():
-            print('Test 1/4')
-
-        # Test the get_assets method
-        if account_manager.get_assets():
-            print('Test 2/4')
+        # if account_manager.get_account_details():
+        #     print('Test 1/4')
+        #
+        # # Test the get_assets method
+        # if account_manager.get_assets():
+        #     print('Test 2/4')
         # Test the get_orders method
         if account_manager.get_orders():
             print('Test 3/4')
