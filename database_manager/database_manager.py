@@ -19,6 +19,11 @@ class DatabaseManager:
                             Column('key', String, primary_key=True),
                             Column('value', Text))
         self.metadata.create_all(self.engine)
+        self.user_strategies = Table('user_strategies', self.metadata,
+                                     Column('id', Integer, primary_key=True),
+                                     Column('strategy_name', String, nullable=False),
+                                     Column('is_purchased', Boolean, nullable=False, default=False),
+                                     Column('is_active', Boolean, nullable=False, default=False))
 
     def create_table(self, table_name):
         try:
@@ -103,6 +108,37 @@ class DatabaseManager:
             raise
         except Exception as e:
             logging.error(f"Unhandled error in retrieve_user_config: {e}")
+            raise
+
+    def store_strategy(self, strategy_name: str, is_purchased: bool, is_active: bool):
+        try:
+            with self.engine.begin() as connection:
+                connection.execute(insert(self.user_strategies).values(strategy_name=strategy_name,
+                                                                       is_purchased=is_purchased,
+                                                                       is_active=is_active))
+        except SQLAlchemyError as e:
+            logging.error(f"Error storing strategy: {e}")
+            raise
+
+    def retrieve_strategy(self, strategy_name: str):
+        logging.info(f"Retrieving strategy {strategy_name}")
+        try:
+            with self.engine.begin() as connection:
+                result = connection.execute(select(self.user_strategies.c.is_purchased,
+                                                   self.user_strategies.c.is_active)
+                                            .where(self.user_strategies.c.strategy_name == strategy_name))
+                row = result.fetchone()
+
+                if row is None:
+                    logging.info("Strategy not found.")
+                    return None, None
+
+                is_purchased, is_active = row
+
+                logging.info(f"Retrieved strategy: {is_purchased}, {is_active}")
+                return is_purchased, is_active
+        except SQLAlchemyError as e:
+            logging.error(f"Error retrieving strategy: {e}")
             raise
 
     @staticmethod
