@@ -8,12 +8,17 @@
       <jdbc-url>jdbc:sqlite:identifier.sqlite</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="historical_data.db" uuid="e10187cb-d8fc-44f4-b498-9a2da8dcf42f">
+    <data-source source="LOCAL" name="trading_bot" uuid="09d6c8ea-94c6-408b-9191-41fa84f45685">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/historical_data.db</jdbc-url>
+      <jdbc-url>jdbc:sqlite:C:\Users\alex0\PycharmProjects\ReganTrader\historical_data_manager\trading_bot.db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
+      <libraries>
+        <library>
+          <url>file://$APPLICATION_CONFIG_DIR$/jdbc-drivers/Xerial SQLiteJDBC/3.40.1/org/xerial/sqlite-jdbc/3.40.1.0/sqlite-jdbc-3.40.1.0.jar</url>
+        </library>
+      </libraries>
     </data-source>
   </component>
 </project>

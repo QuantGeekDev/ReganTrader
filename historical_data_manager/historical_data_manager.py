@@ -4,6 +4,7 @@ import logging
 import pickle
 from database_manager.database_manager import DatabaseManager
 
+
 class HistoricalDataManager:
     def __init__(self, data_provider, db_manager):
         self.data_provider = data_provider
@@ -34,3 +35,4 @@ class HistoricalDataManager:
         except Exception as e:
             logging.error(f"Error fetching historical data for {symbol}: {e}")
             raise
+

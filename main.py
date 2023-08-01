@@ -13,6 +13,8 @@ from backtesting_engine.backtesting_engine import BacktestingEngine
 from performance_measurement.performance_measurement import PerformanceMeasurement
 from bot_test_suite.bot_test_suite import BotTestSuite
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
+from data_provider_interface.data_provider import DataProvider
+from data_provider_interface.connectors.alpaca.alpaca_connector import AlpacaConnector
 
 # Remove API KEYs from Prod
 API_KEY = "PKGUF4JBS4CNZDCNDLP8"
@@ -27,7 +29,8 @@ def main():
     # core_bot_engine = CoreBotEngine()
     # strategy_manager = StrategyManager()
     # order_execution_engine = OrderExecutionEngine()
-    data_provider = DataProviderInterface(api_key=API_KEY, secret_key=SECRET_KEY)
+    alpaca_connector = AlpacaConnector(api_key=API_KEY, secret_key=SECRET_KEY)
+    data_provider = DataProvider(alpaca_connector)
     historical_data_manager = HistoricalDataManager(data_provider=data_provider, db_manager=db_manager)
 
     # ui_server = UIServer()
