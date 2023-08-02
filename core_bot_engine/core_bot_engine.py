@@ -33,8 +33,8 @@ class CoreBotEngine:
 
     def start_trading(self):
         try:
-            strategy_settings = self.config_manager.get_config("strategy")
-            strategy = self.strategy_manager.load_strategy(strategy_settings)
+            active_strategy = self.config_manager.get_config("strategy")
+            strategy = self.strategy_manager.load_strategy(active_strategy)
             self.is_trading = True
             while self.is_trading:
                 try:
