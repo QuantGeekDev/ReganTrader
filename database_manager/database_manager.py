@@ -185,6 +185,26 @@ class DatabaseManager:
         except Exception as e:
             logging.error(f"Unhandled error in insert_configuration: {e}")
             raise
+
+    def retrieve_all_configurations(self):
+        logging.info("Retrieving all configurations")
+        try:
+            with self.engine.begin() as connection:
+                result = connection.execute(select(self.config.c.key, self.config.c.value))
+                rows = result.fetchall()
+
+                if rows is None:
+                    logging.info("No configurations found.")
+                    return None
+
+                logging.debug(f"Retrieved configurations: {rows}")
+                return {row[0]: row[1] for row in rows}
+        except SQLAlchemyError as e:
+            logging.error(f"Error retrieving configurations: {e}")
+            raise
+        except Exception as e:
+            logging.error(f"Unhandled error in retrieve_all_configurations: {e}")
+            raise
     @staticmethod
     def encrypt(data):
         fernet = Fernet(KEY)

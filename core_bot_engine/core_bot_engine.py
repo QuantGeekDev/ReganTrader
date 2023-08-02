@@ -4,19 +4,30 @@ from database_manager.database_manager import DatabaseManager
 from data_provider_interface.data_provider_interface import DataProviderInterface
 from strategy_manager.strategy_manager import StrategyManager
 from trade_manager.trade_manager import TradeManager
+from risk_manager.risk_manager import RiskManager
+from order_execution_engine.order_execution_engine import OrderExecutionEngine
+from configuration_manager.configuration_manager import ConfigurationManager
+from data_provider_interface.connectors.alpaca.alpaca_connector import AlpacaConnector
+from historical_data_manager.historical_data_manager import HistoricalDataManager
+from alpaca.data import TimeFrame, TimeFrameUnit
 
 
 class CoreBotEngine:
     def __init__(self):
-        # Initialize the Database Management and get the last saved settings
         self.db_manager = DatabaseManager()
-        self.settings = self.db_manager.retrieve_configuration()
+        self.config_manager = ConfigurationManager(self.db_manager)
+        self.settings = self.config_manager.get_config("settings")
 
         # Initialize Data Provider Interface, Strategy Manager, and Trade Management
-        self.data_provider = DataProviderInterface(self.settings)
+        self.data_provider = DataProviderInterface(self.settings, connector=AlpacaConnector)
+        self.historical_data_manager = HistoricalDataManager(self.data_provider, self.db_manager)
         self.strategy_manager = StrategyManager(self.settings, self.db_manager)
         self.trade_manager = TradeManager(self.settings, self.db_manager)
 
+        # # Initialize RiskManager and OrderExecutionEngine
+        # self.risk_manager = RiskManager(self.settings)
+        # self.order_execution_engine = OrderExecutionEngine(self.settings)
+        # TODO: Implement risk manager module
         # Flag to control the trading loop
         self.is_trading = False
 
@@ -29,23 +40,27 @@ class CoreBotEngine:
 
     def start_trading(self):
         # Load the trading strategy
-        strategy = self.strategy_manager.load_strategy()
-
-        # Start the data provider
-        self.data_provider.start()
+        strategy_settings = self.config_manager.get_config("strategy")
+        strategy = self.strategy_manager.load_strategy(strategy_settings)
 
         # Begin the trading loop
         self.is_trading = True
         while self.is_trading:
             try:
+                # Define the parameters for the data request
+                symbol = ['BTC/USD']  # Or any other symbol that you want to trade
+                timeframe = TimeFrame.Day  # Or any other timeframe that is relevant to your strategy
+
                 # Get the latest market data
-                market_data = self.data_provider.get_data()
+                market_data = self.historical_data_manager.get_historical_data(symbol, timeframe)
 
                 # Execute the trading strategy
-                signals = strategy.execute(market_data)
+                signals = strategy.calculate_signals(market_data)
 
-                # Process the signals
-                self.trade_manager.process_signals(signals)
+                # Add check for risk before processing signals
+                if self.risk_manager.check_risk(signals):
+                    # Process the signals
+                    self.trade_manager.process_signals(signals)
 
                 # Sleep for a while before next iteration
                 time.sleep(self.settings['trading_interval'])
@@ -55,10 +70,7 @@ class CoreBotEngine:
 
     def stop_trading(self):
         self.is_trading = False
-        self.data_provider.stop()
         self.logger.info("Trading has been stopped.")
 
     def update_settings(self, new_settings):
-        self.settings = new_settings
-        self.db_manager.save_settings(new_settings)
-        self.logger.info("Settings have been updated.")
+        self.config_manager.set_config("settings", new_settings)
