@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 
+
 class StrategyTemplate(ABC):
     """
     A base class for trading strategies.
