@@ -37,14 +37,12 @@ class TradeManager:
                     stop_loss = signal.get('stop_loss')
                     limit_price = signal.get('limit_price')
                     stop_price = signal.get('stop_price')
-                    trail_price = signal.get('trail_price')
-                    trail_percent = signal.get('trail_percent')
 
-                    self.order_execution_engine.create_order(order_type, symbol, qty, notional, side, tif, extended_hours,
+                    self.order_execution_engine.create_order(order_type, symbol, qty, notional, side, tif,
+                                                             extended_hours,
                                                              client_order_id,
-                                                             order_class, take_profit, stop_loss, limit_price, stop_price,
-                                                             trail_price,
-                                                             trail_percent)
+                                                             order_class, take_profit, stop_loss, limit_price,
+                                                             stop_price)
             except Exception as e:
                 self.logger.error(f"Failed to process signal: {signal}. Exception: {str(e)}")
 

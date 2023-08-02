@@ -27,6 +27,7 @@ class CoreBotEngine:
             handler = logging.StreamHandler()
             handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
             self.logger.addHandler(handler)
+            self.latest_data_time = None  # Initialize the latest_data_time variable
         except Exception as e:
             self.logger.error(f"An error occurred during initialization: {e}")
             raise e
@@ -36,13 +37,23 @@ class CoreBotEngine:
             active_strategy = self.config_manager.get_config("strategy")
             strategy = self.strategy_manager.load_strategy(active_strategy)
             self.is_trading = True
+            market_data = None  # Initialize market_data variable
             while self.is_trading:
                 try:
                     symbol = ['BTC/USD']
                     timeframe = TimeFrame.Day
-                    market_data = self.historical_data_manager.get_historical_data(symbol, timeframe)
-                    signals = strategy.calculate_signals(market_data)
+                    # Check if market data needs to be updated
+                    if self.latest_data_time is None or time.time() - self.latest_data_time > self.config_manager.get_config('settings')['data_update_interval']:
+                        # Get the latest market data
+                        market_data = self.historical_data_manager.get_historical_data(symbol, timeframe)
+                        self.latest_data_time = time.time()
+
+                    # Execute the trading strategy only for the new data
+                    signals = strategy.calculate_signals(market_data.tail(1))
+
+                    # Process the signals
                     self.trade_manager.process_signals(signals)
+
                     time.sleep(self.config_manager.get_config('settings')['trading_interval'])
                 except Exception as e:
                     self.logger.error(f"An error occurred while trading: {e}")

@@ -31,8 +31,7 @@ class OrderExecutionEngine:
         }
 
     def create_order(self, order_type, symbol, qty=None, notional=None, side=OrderSide.BUY, client_order_id=None,
-                     order_class=None, take_profit=None, stop_loss=None, limit_price=None, stop_price=None,
-                     trail_price=None, trail_percent=None):
+                     order_class=None, take_profit=None, stop_loss=None, limit_price=None, stop_price=None):
 
         request_class = self.order_class_mapping.get(order_type)
         if not request_class:
@@ -47,7 +46,7 @@ class OrderExecutionEngine:
         }
 
         optional_params = ['qty', 'notional', 'client_order_id', 'order_class', 'take_profit',
-                           'stop_loss', 'limit_price', 'stop_price', 'trail_price', 'trail_percent']
+                           'stop_loss', 'limit_price', 'stop_price']
         for param_name in optional_params:
             param_value = locals().get(param_name)
             if param_value is not None:

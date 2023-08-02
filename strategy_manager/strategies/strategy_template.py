@@ -1,3 +1,5 @@
+# strategy_template.py
+
 from abc import ABC, abstractmethod
 
 class StrategyTemplate(ABC):
