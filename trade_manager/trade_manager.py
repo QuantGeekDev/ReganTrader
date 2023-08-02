@@ -5,11 +5,11 @@ from alpaca.trading.enums import OrderType, OrderSide, TimeInForce
 
 
 class TradeManager:
-    def __init__(self, settings, db_manager):
-        self.order_execution_engine = OrderExecutionEngine(settings['api_key'], settings['secret_key'],
-                                                           settings['paper'])
+    def __init__(self, config_manager, db_manager):
+        self.order_execution_engine = OrderExecutionEngine(config_manager['api_key'], config_manager['secret_key'],
+                                                           config_manager['paper'])
         self.db_manager = db_manager
-        self.risk_manager = RiskManager(settings, db_manager)
+        self.risk_manager = RiskManager(config_manager, db_manager)
         self.open_positions = {}  # A dictionary to track open positions
         self.open_orders = {}  # A dictionary to track open orders
         # Initialize logging
@@ -19,35 +19,48 @@ class TradeManager:
         handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
         self.logger.addHandler(handler)
 
-    # TODO: Add order tracking logic -> what to do if order is partially filled, what to do if order deviates from
-    #  the current price by too much
     def process_signals(self, signals):
         for signal in signals:
             try:
-                # Unpacking the signal into the order parameters
-                order_type = signal.get('order_type')
-                symbol = signal.get('symbol')
-                qty = signal.get('qty')
-                notional = signal.get('notional')
-                side = signal.get('side', OrderSide.BUY)  # default to BUY if not provided
-                tif = signal.get('tif', TimeInForce.DAY)  # default to DAY if not provided
-                extended_hours = signal.get('extended_hours', False)  # default to False if not provided
-                client_order_id = signal.get('client_order_id')
-                order_class = signal.get('order_class')
-                take_profit = signal.get('take_profit')
-                stop_loss = signal.get('stop_loss')
-                limit_price = signal.get('limit_price')
-                stop_price = signal.get('stop_price')
-                trail_price = signal.get('trail_price')
-                trail_percent = signal.get('trail_percent')
+                if self.risk_manager.check_order_risk(signal):  # Check the risk for each signal
+                    # Unpacking the signal into the order parameters
+                    order_type = signal.get('order_type')
+                    symbol = signal.get('symbol')
+                    qty = signal.get('qty')
+                    notional = signal.get('notional')
+                    side = signal.get('side', OrderSide.BUY)  # default to BUY if not provided
+                    tif = signal.get('tif', TimeInForce.DAY)  # default to DAY if not provided
+                    extended_hours = signal.get('extended_hours', False)  # default to False if not provided
+                    client_order_id = signal.get('client_order_id')
+                    order_class = signal.get('order_class')
+                    take_profit = signal.get('take_profit')
+                    stop_loss = signal.get('stop_loss')
+                    limit_price = signal.get('limit_price')
+                    stop_price = signal.get('stop_price')
+                    trail_price = signal.get('trail_price')
+                    trail_percent = signal.get('trail_percent')
 
-                self.order_execution_engine.create_order(order_type, symbol, qty, notional, side, tif, extended_hours,
-                                                         client_order_id,
-                                                         order_class, take_profit, stop_loss, limit_price, stop_price,
-                                                         trail_price,
-                                                         trail_percent)
+                    self.order_execution_engine.create_order(order_type, symbol, qty, notional, side, tif, extended_hours,
+                                                             client_order_id,
+                                                             order_class, take_profit, stop_loss, limit_price, stop_price,
+                                                             trail_price,
+                                                             trail_percent)
             except Exception as e:
                 self.logger.error(f"Failed to process signal: {signal}. Exception: {str(e)}")
+
+    def check_market_risk(self):
+        """
+        Check market risk and rebalance if necessary.
+        This could be called periodically.
+        """
+        if self.risk_manager.check_market_risk():
+            self.rebalance_portfolio()
+
+    def rebalance_portfolio(self):
+        """
+        Rebalance the portfolio based on the risk parameters.
+        """
+        pass  # TODO: Implement the rebalancing logic here
 
     def cancel_all_orders(self):
         try:

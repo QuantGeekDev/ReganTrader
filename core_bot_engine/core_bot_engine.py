@@ -4,30 +4,27 @@ from database_manager.database_manager import DatabaseManager
 from data_provider_interface.data_provider_interface import DataProviderInterface
 from strategy_manager.strategy_manager import StrategyManager
 from trade_manager.trade_manager import TradeManager
-from risk_manager.risk_manager import RiskManager
 from order_execution_engine.order_execution_engine import OrderExecutionEngine
 from configuration_manager.configuration_manager import ConfigurationManager
 from data_provider_interface.connectors.alpaca.alpaca_connector import AlpacaConnector
 from historical_data_manager.historical_data_manager import HistoricalDataManager
 from alpaca.data import TimeFrame, TimeFrameUnit
 
-
 class CoreBotEngine:
     def __init__(self):
         self.db_manager = DatabaseManager()
         self.config_manager = ConfigurationManager(self.db_manager)
-        self.settings = self.config_manager.get_config("settings")
+        self.connector = AlpacaConnector
 
         # Initialize Data Provider Interface, Strategy Manager, and Trade Management
-        self.data_provider = DataProviderInterface(self.settings, connector=AlpacaConnector)
+        self.data_provider = DataProviderInterface(self.config_manager, connector=self.connector)
         self.historical_data_manager = HistoricalDataManager(self.data_provider, self.db_manager)
-        self.strategy_manager = StrategyManager(self.settings, self.db_manager)
-        self.trade_manager = TradeManager(self.settings, self.db_manager)
+        self.strategy_manager = StrategyManager(self.config_manager, self.db_manager)
+        self.trade_manager = TradeManager(self.config_manager, self.db_manager)
 
-        # # Initialize RiskManager and OrderExecutionEngine
-        # self.risk_manager = RiskManager(self.settings)
-        # self.order_execution_engine = OrderExecutionEngine(self.settings)
-        # TODO: Implement risk manager module
+        # Initialize OrderExecutionEngine
+        self.order_execution_engine = OrderExecutionEngine(self.config_manager)
+
         # Flag to control the trading loop
         self.is_trading = False
 
@@ -57,13 +54,11 @@ class CoreBotEngine:
                 # Execute the trading strategy
                 signals = strategy.calculate_signals(market_data)
 
-                # Add check for risk before processing signals
-                if self.risk_manager.check_risk(signals):
-                    # Process the signals
-                    self.trade_manager.process_signals(signals)
+                # Process the signals
+                self.trade_manager.process_signals(signals)
 
                 # Sleep for a while before next iteration
-                time.sleep(self.settings['trading_interval'])
+                time.sleep(self.config_manager.get_config('settings')['trading_interval'])
             except Exception as e:
                 self.logger.error(f"An error occurred while trading: {e}")
                 self.stop_trading()
