@@ -14,8 +14,13 @@ from alpaca.trading.enums import OrderType, OrderSide, TimeInForce
 
 
 class OrderExecutionEngine:
-    def __init__(self, api_key, secret_key, paper=True):
-        self.trading_client = TradingClient(api_key=api_key, secret_key=secret_key, paper=paper)
+    def __init__(self, config_manager):
+        self.trading_client = TradingClient(api_key=config_manager.get_config('api_key'),
+                                            secret_key=config_manager.get_config('secret_key'),
+                                            paper=config_manager.get_config('paper'))
+        self.config_manager = config_manager
+        self.extended_hours = config_manager.get_config('extended_hours')
+        self.tif = config_manager.get_config('time_in_force')
         self.logger = logging.getLogger(__name__)
         self.order_class_mapping = {
             OrderType.MARKET: MarketOrderRequest,
@@ -25,9 +30,10 @@ class OrderExecutionEngine:
             OrderType.TRAILING_STOP: TrailingStopOrderRequest
         }
 
-    def create_order(self, order_type, symbol, qty=None, notional=None, side=OrderSide.BUY, tif=TimeInForce.DAY,
-                     extended_hours=False, client_order_id=None, order_class=None, take_profit=None,
-                     stop_loss=None, limit_price=None, stop_price=None, trail_price=None, trail_percent=None):
+    def create_order(self, order_type, symbol, qty=None, notional=None, side=OrderSide.BUY, client_order_id=None,
+                     order_class=None, take_profit=None, stop_loss=None, limit_price=None, stop_price=None,
+                     trail_price=None, trail_percent=None):
+
         request_class = self.order_class_mapping.get(order_type)
         if not request_class:
             self.logger.error(f"Unsupported order type: {order_type}")
@@ -36,8 +42,8 @@ class OrderExecutionEngine:
         params = {
             'symbol': symbol,
             'side': side,
-            'time_in_force': tif,
-            'extended_hours': extended_hours,
+            'time_in_force': self.tif,  # get from instance variable
+            'extended_hours': self.extended_hours,  # get from instance variable
         }
 
         optional_params = ['qty', 'notional', 'client_order_id', 'order_class', 'take_profit',

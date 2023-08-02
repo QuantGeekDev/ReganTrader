@@ -5,9 +5,8 @@ from configuration_manager.configuration_manager import ConfigurationManager
 
 
 class DataProviderInterface(ABC, ):
-    def __init__(self, settings, connector, config_manager: ConfigurationManager):
+    def __init__(self, connector, config_manager: ConfigurationManager):
         self.connector = connector
-        self.settings = settings
         self.config_manager = config_manager
 
     @abstractmethod
