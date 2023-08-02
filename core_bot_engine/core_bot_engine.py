@@ -1,7 +1,7 @@
 import time
 import logging
 from database_manager.database_manager import DatabaseManager
-from data_provider_interface.data_provider_interface import DataProviderInterface
+from data_provider_interface.data_provider import DataProvider  # Change this line
 from strategy_manager.strategy_manager import StrategyManager
 from trade_manager.trade_manager import TradeManager
 from order_execution_engine.order_execution_engine import OrderExecutionEngine
@@ -12,21 +12,21 @@ from alpaca.data import TimeFrame, TimeFrameUnit
 
 class CoreBotEngine:
     def __init__(self, config_manager):
+        self.logger = logging.getLogger(__name__)  # Move logger initialization here
+        self.logger.setLevel(logging.INFO)
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        self.logger.addHandler(handler)
         try:
             self.db_manager = DatabaseManager()
             self.config_manager = config_manager
             self.connector = AlpacaConnector
-            self.data_provider = DataProviderInterface(connector=self.connector,config_manager=self.config_manager)
+            self.data_provider = DataProvider(connector=self.connector, config_manager=self.config_manager)  # Change this line
             self.historical_data_manager = HistoricalDataManager(self.data_provider, self.db_manager)
             self.strategy_manager = StrategyManager(self.config_manager, self.db_manager)
             self.trade_manager = TradeManager(self.config_manager, self.db_manager)
             self.order_execution_engine = OrderExecutionEngine(self.config_manager)
             self.is_trading = False
-            self.logger = logging.getLogger(__name__)
-            self.logger.setLevel(logging.INFO)
-            handler = logging.StreamHandler()
-            handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-            self.logger.addHandler(handler)
             self.latest_data_time = None  # Initialize the latest_data_time variable
         except Exception as e:
             self.logger.error(f"An error occurred during initialization: {e}")

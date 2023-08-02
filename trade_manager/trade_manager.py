@@ -6,8 +6,7 @@ from alpaca.trading.enums import OrderType, OrderSide, TimeInForce
 
 class TradeManager:
     def __init__(self, config_manager, db_manager):
-        self.order_execution_engine = OrderExecutionEngine(config_manager['api_key'], config_manager['secret_key'],
-                                                           config_manager['paper'])
+        self.order_execution_engine = OrderExecutionEngine(config_manager)
         self.db_manager = db_manager
         self.risk_manager = RiskManager(config_manager, db_manager)
         self.open_positions = {}  # A dictionary to track open positions
