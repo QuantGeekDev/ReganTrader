@@ -1,7 +1,7 @@
 import time
 import logging
 from database_manager.database_manager import DatabaseManager
-from data_provider_interface.data_provider import DataProvider  # Change this line
+from data_provider_interface.data_provider import DataProvider
 from strategy_manager.strategy_manager import StrategyManager
 from trade_manager.trade_manager import TradeManager
 from order_execution_engine.order_execution_engine import OrderExecutionEngine
@@ -11,17 +11,17 @@ from alpaca.data import TimeFrame, TimeFrameUnit
 
 
 class CoreBotEngine:
-    def __init__(self, config_manager):
-        self.logger = logging.getLogger(__name__)  # Move logger initialization here
+    def __init__(self, config_manager, db_manager: DatabaseManager):
+        self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
         self.logger.addHandler(handler)
         try:
-            self.db_manager = DatabaseManager()
+            self.db_manager = db_manager
             self.config_manager = config_manager
             self.connector = AlpacaConnector
-            self.data_provider = DataProvider(connector=self.connector, config_manager=self.config_manager)  # Change this line
+            self.data_provider = DataProvider(connector=self.connector, config_manager=self.config_manager)
             self.historical_data_manager = HistoricalDataManager(self.data_provider, self.db_manager)
             self.strategy_manager = StrategyManager(self.config_manager, self.db_manager)
             self.trade_manager = TradeManager(self.config_manager, self.db_manager)
@@ -34,7 +34,7 @@ class CoreBotEngine:
 
     def start_trading(self):
         try:
-            active_strategy = self.config_manager.get_config("strategy")
+            active_strategy = self.db_manager.get_active_strategy()
             strategy = self.strategy_manager.load_strategy(active_strategy)
             self.is_trading = True
             market_data = None  # Initialize market_data variable
@@ -43,7 +43,8 @@ class CoreBotEngine:
                     symbol = ['BTC/USD']
                     timeframe = TimeFrame.Day
                     # Check if market data needs to be updated
-                    if self.latest_data_time is None or time.time() - self.latest_data_time > self.config_manager.get_config('settings')['data_update_interval']:
+                    if self.latest_data_time is None or time.time() - self.latest_data_time > \
+                            self.config_manager.get_config('settings')['data_update_interval']:
                         # Get the latest market data
                         market_data = self.historical_data_manager.get_historical_data(symbol, timeframe)
                         self.latest_data_time = time.time()
@@ -57,7 +58,8 @@ class CoreBotEngine:
                     time.sleep(self.config_manager.get_config('settings')['trading_interval'])
                 except Exception as e:
                     self.logger.error(f"An error occurred while trading: {e}")
-                    self.stop_trading()
+                    # Do not stop trading if there is an error in the trading loop
+                time.sleep(self.config_manager.get_config('settings')['trading_interval'])
         except Exception as e:
             self.logger.error(f"An error occurred while loading the strategy: {e}")
             raise e

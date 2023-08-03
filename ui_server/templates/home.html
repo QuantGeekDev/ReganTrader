@@ -3,9 +3,9 @@
 {% block content %}
   <div class="container">
     <h1>Home</h1>
-    <div class="form-check form-switch">
-      <input class="form-check-input" type="checkbox" id="toggleTrading" checked>
-      <label class="form-check-label" for="toggleTrading">Toggle Trading</label>
-    </div>
+    <form method="POST">
+      <button type="submit" name="bot_action" value="start" class="btn btn-success">Start</button>
+      <button type="submit" name="bot_action" value="stop" class="btn btn-danger">Stop</button>
+    </form>
   </div>
 {% endblock content %}

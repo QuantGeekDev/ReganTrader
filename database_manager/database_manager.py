@@ -110,6 +110,14 @@ class DatabaseManager:
             logging.error(f"Unhandled error in retrieve_user_config: {e}")
             raise
 
+#TODO: Implement the is_purchase and is_active bools:
+    def set_active_strategy(self, strategy_name):
+        logging.info(f"Setting active strategy {strategy_name}")
+        self.insert_configuration('active_strategy', strategy_name)
+
+    def get_active_strategy(self):
+        logging.info("Retrieving active strategy")
+        return self.retrieve_configuration('active_strategy')
     def store_strategy(self, strategy_name: str, is_purchased: bool, is_active: bool):
         try:
             with self.engine.begin() as connection:
@@ -140,7 +148,6 @@ class DatabaseManager:
         except SQLAlchemyError as e:
             logging.error(f"Error retrieving strategy: {e}")
             raise
-
     def retrieve_configuration(self, key):
         logging.info(f"Retrieving configuration {key}")
         try:
