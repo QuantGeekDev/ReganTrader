@@ -17,7 +17,11 @@ class ConfigurationManager:
                     return user_config[key]
             return None
         value = self.db_manager.retrieve_configuration(key)
-        return json.loads(value) if value is not None else None
+        try:
+            return json.loads(value) if value is not None else None
+        except json.JSONDecodeError:
+            logging.error(f'Error decoding JSON for key "{key}", value was: {value}')
+            return None
 
     def set_config(self, key, value):
         """Set a configuration value in the database"""

@@ -5,10 +5,10 @@ from alpaca.trading.enums import OrderType, OrderSide, TimeInForce
 
 
 class TradeManager:
-    def __init__(self, config_manager):
+    def __init__(self, config_manager, account_manager):
         self.order_execution_engine = OrderExecutionEngine(config_manager)
+        self.risk_manager = RiskManager(config_manager, account_manager)
         self.config_manager = config_manager
-        self.risk_manager = RiskManager(config_manager)
         self.open_positions = {}  # A dictionary to track open positions
         self.open_orders = {}  # A dictionary to track open orders
         # Initialize logging

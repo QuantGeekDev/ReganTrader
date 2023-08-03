@@ -36,16 +36,28 @@ class StrategyManager:
             strategy_module_name = self.strategy_map.get(strategy_name)
 
             if not strategy_module_name:
-                raise ValueError("Invalid strategy name")
+                raise ValueError(f"Invalid strategy name: {strategy_name}")
 
+            # Add debug logs to track the import process
+            logging.debug(f"Importing strategy module: {strategy_module_name}")
             strategy_module = importlib.import_module(f'.strategies.{strategy_module_name}', package='strategy_manager')
-            print(dir(strategy_module))  # Print all attributes of the strategy module
+
+            # Check if the strategy class exists in the module
+            if not hasattr(strategy_module, strategy_name):
+                raise AttributeError(f"Strategy class {strategy_name} not found in module {strategy_module_name}")
+
             strategy_class = getattr(strategy_module, strategy_name)
 
             if self.strategy_parameters:
                 # If parameters for the strategy were found in the database, use them to instantiate the strategy
-                self.strategy = strategy_class(**self.strategy_parameters)
-                logging.info(f"Loaded strategy {strategy_name} with parameters {self.strategy_parameters}")
+                try:
+                    self.strategy = strategy_class(**self.strategy_parameters)
+                    logging.info(f"Loaded strategy {strategy_name} with parameters {self.strategy_parameters}")
+                except TypeError:
+                    logging.error(
+                        f"The parameters in the database do not match the expected parameters"
+                        f" for the strategy {strategy_name}")
+                    raise
             else:
                 # If no parameters were found in the database, instantiate the strategy with its default parameters
                 self.strategy = strategy_class()
@@ -54,14 +66,14 @@ class StrategyManager:
             self.strategy_registry[strategy_name] = strategy_class  # Add strategy to the registry
             self.set_strategy_active(strategy_name)  # Set this strategy as active
 
-        except ImportError:
-            logging.error(f"Error importing strategy {strategy_name}")
+        except ImportError as e:
+            logging.error(f"Error importing strategy {strategy_name}: {e}")
             raise
-        except AttributeError:
-            logging.error(f"Strategy {strategy_name} not found in module")
+        except AttributeError as e:
+            logging.error(f"Error loading strategy {strategy_name}: {e}")
             raise
         except Exception as e:
-            logging.error(f"Error loading strategy {strategy_name}: {e}")
+            logging.error(f"Unhandled error loading strategy {strategy_name}: {e}")
             raise
 
     def set_strategy_active(self, strategy_name):

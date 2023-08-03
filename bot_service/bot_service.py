@@ -2,18 +2,22 @@ from database_manager.database_manager import DatabaseManager
 from configuration_manager.configuration_manager import ConfigurationManager
 from core_bot_engine.core_bot_engine import CoreBotEngine
 from strategy_manager.strategy_manager import StrategyManager
+from account_manager.account_manager import AccountManager
 
 
 class BotService:
     def __init__(self):
         self.db_manager = DatabaseManager()
         self.config_manager = ConfigurationManager(self.db_manager)
+        self.account_manager = AccountManager(api_key=self.config_manager.get_config('api_key'),
+                                              secret_key=self.config_manager.get_config('api_secret'),
+                                              paper=self.config_manager.get_config('paper'))
         self.strategy_manager = StrategyManager(self.config_manager)
         self.bot = None
 
     def start_bot(self):
         if self.bot is None:
-            self.bot = CoreBotEngine(self.config_manager)
+            self.bot = CoreBotEngine(self.config_manager, self.account_manager)
         self.bot.start_trading()
 
     def stop_bot(self):

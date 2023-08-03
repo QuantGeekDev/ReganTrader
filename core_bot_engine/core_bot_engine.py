@@ -10,7 +10,7 @@ from alpaca.data import TimeFrame, TimeFrameUnit
 
 
 class CoreBotEngine:
-    def __init__(self, config_manager):
+    def __init__(self, config_manager, account_manager):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         handler = logging.StreamHandler()
@@ -22,7 +22,7 @@ class CoreBotEngine:
             self.data_provider = DataProvider(connector=self.connector, config_manager=self.config_manager)
             self.historical_data_manager = HistoricalDataManager(self.data_provider, self.config_manager)
             self.strategy_manager = StrategyManager(self.config_manager)
-            self.trade_manager = TradeManager(self.config_manager)
+            self.trade_manager = TradeManager(config_manager, account_manager)
             self.order_execution_engine = OrderExecutionEngine(self.config_manager)
             self.is_trading = False
             self.latest_data_time = None  # Initialize the latest_data_time variable
