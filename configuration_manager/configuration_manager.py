@@ -1,5 +1,7 @@
 import json
-
+from sqlalchemy import select, insert, update, delete
+from sqlalchemy.exc import SQLAlchemyError
+import logging
 
 class ConfigurationManager:
     def __init__(self, db_manager):
@@ -37,3 +39,42 @@ class ConfigurationManager:
             return json.loads(strategy_parameters)
         else:
             return None
+
+    def set_active_strategy(self, strategy_name):
+        logging.info(f"Setting active strategy {strategy_name}")
+        self.db_manager.insert_configuration('active_strategy', strategy_name)
+
+    def get_active_strategy(self):
+        logging.info("Retrieving active strategy")
+        return self.db_manager.retrieve_configuration('active_strategy')
+
+    def store_strategy(self, strategy_name: str, is_purchased: bool, is_active: bool):
+        try:
+            with self.db_manager.engine.begin() as connection:
+                connection.execute(insert(self.db_manager.user_strategies).values(strategy_name=strategy_name,
+                                                                                  is_purchased=is_purchased,
+                                                                                  is_active=is_active))
+        except SQLAlchemyError as e:
+            logging.error(f"Error storing strategy: {e}")
+            raise
+
+    def retrieve_strategy(self, strategy_name: str):
+        logging.info(f"Retrieving strategy {strategy_name}")
+        try:
+            with self.db_manager.engine.begin() as connection:
+                result = connection.execute(select(self.db_manager.user_strategies.c.is_purchased,
+                                                   self.db_manager.user_strategies.c.is_active)
+                                            .where(self.db_manager.user_strategies.c.strategy_name == strategy_name))
+                row = result.fetchone()
+
+                if row is None:
+                    logging.info("Strategy not found.")
+                    return None, None
+
+                is_purchased, is_active = row
+
+                logging.info(f"Retrieved strategy: {is_purchased}, {is_active}")
+                return is_purchased, is_active
+        except SQLAlchemyError as e:
+            logging.error(f"Error retrieving strategy: {e}")
+            raise

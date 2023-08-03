@@ -5,10 +5,10 @@ from alpaca.trading.enums import OrderType, OrderSide, TimeInForce
 
 
 class TradeManager:
-    def __init__(self, config_manager, db_manager):
+    def __init__(self, config_manager):
         self.order_execution_engine = OrderExecutionEngine(config_manager)
-        self.db_manager = db_manager
-        self.risk_manager = RiskManager(config_manager, db_manager)
+        self.config_manager = config_manager
+        self.risk_manager = RiskManager(config_manager)
         self.open_positions = {}  # A dictionary to track open positions
         self.open_orders = {}  # A dictionary to track open orders
         # Initialize logging
@@ -36,7 +36,7 @@ class TradeManager:
                     stop_loss = signal.get('stop_loss')
                     limit_price = signal.get('limit_price')
                     stop_price = signal.get('stop_price')
-
+                    # TODO: Add strict keyword enforcement for the creat_order function. Add keyword enforcement where you can
                     self.order_execution_engine.create_order(order_type, symbol, qty, notional, side, tif,
                                                              extended_hours,
                                                              client_order_id,

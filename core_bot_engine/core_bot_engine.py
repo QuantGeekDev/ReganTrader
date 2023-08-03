@@ -1,6 +1,5 @@
 import time
 import logging
-from database_manager.database_manager import DatabaseManager
 from data_provider_interface.data_provider import DataProvider
 from strategy_manager.strategy_manager import StrategyManager
 from trade_manager.trade_manager import TradeManager
@@ -11,20 +10,19 @@ from alpaca.data import TimeFrame, TimeFrameUnit
 
 
 class CoreBotEngine:
-    def __init__(self, config_manager, db_manager: DatabaseManager):
+    def __init__(self, config_manager):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
         self.logger.addHandler(handler)
         try:
-            self.db_manager = db_manager
             self.config_manager = config_manager
             self.connector = AlpacaConnector
             self.data_provider = DataProvider(connector=self.connector, config_manager=self.config_manager)
-            self.historical_data_manager = HistoricalDataManager(self.data_provider, self.db_manager)
-            self.strategy_manager = StrategyManager(self.config_manager, self.db_manager)
-            self.trade_manager = TradeManager(self.config_manager, self.db_manager)
+            self.historical_data_manager = HistoricalDataManager(self.data_provider, self.config_manager)
+            self.strategy_manager = StrategyManager(self.config_manager)
+            self.trade_manager = TradeManager(self.config_manager)
             self.order_execution_engine = OrderExecutionEngine(self.config_manager)
             self.is_trading = False
             self.latest_data_time = None  # Initialize the latest_data_time variable
@@ -34,8 +32,13 @@ class CoreBotEngine:
 
     def start_trading(self):
         try:
-            active_strategy = self.db_manager.get_active_strategy()
-            strategy = self.strategy_manager.load_strategy(active_strategy)
+            active_strategy_config = self.config_manager.get_config('active_strategy')
+            if not active_strategy_config:
+                self.logger.error("No active strategy set!")
+                return
+
+            active_strategy_name = active_strategy_config.get('strategy_name')
+            strategy = self.strategy_manager.load_strategy(active_strategy_name)
             self.is_trading = True
             market_data = None  # Initialize market_data variable
             while self.is_trading:

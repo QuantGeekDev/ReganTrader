@@ -2,15 +2,14 @@ import logging
 import importlib
 import os
 from configuration_manager.configuration_manager import ConfigurationManager
-from database_manager.database_manager import DatabaseManager
 from strategy_manager.strategies.MovingAverageCrossover import MovingAverageCrossover
 
+
 class StrategyManager:
-    def __init__(self, config_manager:ConfigurationManager, db_manager:DatabaseManager):
+    def __init__(self, config_manager: ConfigurationManager):
         self.strategy_dict = {
             'MovingAverageCrossover': MovingAverageCrossover}
         self.config_manager = config_manager
-        self.db_manager = db_manager
         self.strategy = None
         self.strategy_parameters = None
         self.strategy_registry = {}  # A registry of available strategies
@@ -31,7 +30,7 @@ class StrategyManager:
         If no parameters are found, the strategy is instantiated with its default parameters.
         """
         try:
-            self.strategy_parameters = self.config_manager.get_config(strategy_name)
+            self.strategy_parameters = self.config_manager.get_strategy_parameters(strategy_name)
 
             # Get the filename corresponding to the strategy name
             strategy_module_name = self.strategy_map.get(strategy_name)
@@ -69,25 +68,13 @@ class StrategyManager:
         """
         Set a certain strategy as active.
         """
-        # First set all strategies to inactive
-        for name in self.strategy_registry:
-            is_purchased, _ = self.db_manager.retrieve_strategy(name)
-            self.db_manager.store_strategy(name, is_purchased, is_active=False)
-
-        # Then set the desired strategy to active
-        is_purchased, _ = self.db_manager.retrieve_strategy(strategy_name)
-        self.db_manager.store_strategy(strategy_name, is_purchased, is_active=True)
+        self.config_manager.set_active_strategy(strategy_name)
 
     def get_active_strategy(self):
         """
         Get the currently active strategy from the database.
         """
-        for strategy_name in self.strategy_registry:
-            is_purchased, is_active = self.db_manager.retrieve_strategy(strategy_name)
-            if is_active:
-                return strategy_name
-        logging.info("No active strategy found.")
-        return None
+        return self.config_manager.get_active_strategy()
 
     def get_strategy(self):
         """
