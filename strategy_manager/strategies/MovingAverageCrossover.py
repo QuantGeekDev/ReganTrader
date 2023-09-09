@@ -1,6 +1,6 @@
 # mac_strategy.py
 
-from .strategy_template import StrategyTemplate
+from .AbstractStrategy import StrategyTemplate
 import pandas as pd
 import numpy as np
 

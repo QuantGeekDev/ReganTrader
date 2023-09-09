@@ -1,4 +1,4 @@
-# strategy_template.py
+# AbstractStrategy.py
 
 from abc import ABC, abstractmethod
 

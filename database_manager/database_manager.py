@@ -1,6 +1,7 @@
 import logging
 from cryptography.fernet import Fernet
-from sqlalchemy import create_engine, Table, MetaData, Column, Integer, String, Boolean, Text, select, insert, delete, update
+from sqlalchemy import create_engine, Table, MetaData, Column, Integer, String, Boolean, Text, select, insert, delete, \
+    update
 from sqlalchemy.exc import SQLAlchemyError
 
 logging.basicConfig(level=logging.DEBUG)
@@ -11,20 +12,30 @@ class DatabaseManager:
     def __init__(self, db_path='sqlite:///trading_bot.db'):
         self.engine = create_engine(db_path, echo=True)
         self.metadata = MetaData()
-        self.user_config = Table('user_config', self.metadata,
-                                 Column('id', Integer, primary_key=True),
-                                 Column('api_key', Text, nullable=False),
-                                 Column('api_secret', Text, nullable=False),
-                                 Column('paper', Boolean, nullable=False, default=False))
-        self.config = Table('config', self.metadata,
-                            Column('key', String, primary_key=True),
-                            Column('value', Text))
-        self.metadata.create_all(self.engine)
+
+        # Connection_Settings Table Definition
+        self.connection_settings = Table('connection_settings', self.metadata,
+                                         Column('key', String, primary_key=True),
+                                         Column('value', Text))
+        # Bot_Settings Table Definition
+        self.bot_settings = Table('bot_settings', self.metadata,
+                                  Column('key', String, primary_key=True),
+                                  Column('value', Text))
+        # Shared_Stratgy_Settings Table Definition
+        self.shared_strategy_settings = Table('shared_strategy_settings', self.metadata,
+                                              Column('key', String, primary_key=True),
+                                              Column('value', Text))
+        # User_Strategies Table Definition
         self.user_strategies = Table('user_strategies', self.metadata,
                                      Column('id', Integer, primary_key=True),
                                      Column('strategy_name', String, nullable=False),
                                      Column('is_purchased', Boolean, nullable=False, default=False),
                                      Column('is_active', Boolean, nullable=False, default=False))
+        # Strategy_Settings Table Definition
+        self.strategy_settings = Table('strategy_settings', self.metadata,
+                                       Column('strategy_name', String, primary_key=True),
+                                       Column('parameters', Text))
+        self.metadata.create_all(self.engine)
 
     def create_table(self, table_name):
         try:
@@ -54,50 +65,41 @@ class DatabaseManager:
         except SQLAlchemyError as e:
             logging.error(f"Error inserting data into {table_name}: {e}")
             raise
-    def retrieve_configuration(self, key):
-        logging.info(f"Retrieving configuration {key}")
-        try:
-            with self.engine.begin() as connection:
-                result = connection.execute(
-                    select(self.config.c.value)
-                    .where(self.config.c.key == key))
-                row = result.fetchone()
 
-                if row is None:
-                    logging.info(f"No configuration found for key: {key}")
-                    return None
+    def retrieve_configuration(self, key, table_name):
+        with self.engine.begin() as connection:
+            table = self.get_table(table_name)
+            s = select(table.c.value).where(table.c.key == key)  # Select the 'value' column
+            result = connection.execute(s)
+            row = result.fetchone()
+            return row[0] if row is not None else None
 
-                logging.debug(f"Retrieved configuration for key {key}: {row[0]}")
-                return row[0]
-        except SQLAlchemyError as e:
-            logging.error(f"Error retrieving configuration: {e}")
-            raise
-        except Exception as e:
-            logging.error(f"Unhandled error in retrieve_configuration: {e}")
-            raise
-
-    def insert_configuration(self, key, value):
-        logging.info(f"Inserting configuration {key}")
+    def insert_configuration(self, key, value, table_name):
+        logging.info(f"Inserting configuration {key} into {table_name}")
+        table = Table(table_name, self.metadata, autoload_with=self.engine)
         try:
             with self.engine.begin() as connection:
                 # Update the configuration if it exists, else insert
                 update_stmt = (
-                    update(self.config)
-                    .where(self.config.c.key == key)
+                    update(table)
+                    .where(table.c.key == key)
                     .values(value=value)
                     .execution_options(synchronize_session="fetch")
                 )
 
                 if connection.execute(update_stmt).rowcount == 0:
-                    connection.execute(insert(self.config).values(key=key, value=value))
+                    connection.execute(insert(table).values(key=key, value=value))
 
-                logging.info(f"Configuration for key {key} updated successfully")
+                logging.info(f"Configuration for key {key} in {table_name} updated successfully")
         except SQLAlchemyError as e:
             logging.error(f"Error inserting/updating configuration: {e}")
             raise
         except Exception as e:
             logging.error(f"Unhandled error in insert_configuration: {e}")
             raise
+
+
+
     @staticmethod
     def encrypt(data):
         fernet = Fernet(KEY)

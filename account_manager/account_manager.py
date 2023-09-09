@@ -11,6 +11,10 @@ from alpaca.trading.models import Order, Position
 class AccountManager:
 
     def __init__(self, api_key: str, secret_key: str, paper: bool = True):
+        #TODO: Remove hardcoded API keys
+        api_key="PKGUF4JBS4CNZDCNDLP8"
+        secret_key="9DgYQ5rU1pmz4Bqgjb0acGzq6hOPGi8fBc44gL1m"
+        paper=True
         self.trading_client = TradingClient(api_key=api_key, secret_key=secret_key, paper=paper)
 
     def get_orders(self, status: QueryOrderStatus = QueryOrderStatus.OPEN) -> List[Order]:

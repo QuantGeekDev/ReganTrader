@@ -9,9 +9,9 @@ class BotService:
     def __init__(self):
         self.db_manager = DatabaseManager()
         self.config_manager = ConfigurationManager(self.db_manager)
-        self.account_manager = AccountManager(api_key=self.config_manager.get_config('api_key'),
-                                              secret_key=self.config_manager.get_config('api_secret'),
-                                              paper=self.config_manager.get_config('paper'))
+        self.account_manager = AccountManager(api_key=self.config_manager.get_connection_setting('api_key'),
+                                              secret_key=self.config_manager.get_connection_setting('api_secret'),
+                                              paper=self.config_manager.get_connection_setting('paper'))
         self.strategy_manager = StrategyManager(self.config_manager)
         self.bot = None
 
@@ -25,11 +25,23 @@ class BotService:
             self.bot.stop_trading()
             self.bot = None
 
-    def get_settings(self):
-        return self.config_manager.get_config('user_config')
+    def get_connection_setting(self, key):
+        return self.config_manager.get_connection_setting(key)
 
-    def update_settings(self, new_settings):
-        self.config_manager.set_config('user_config', new_settings)
+    def set_connection_setting(self, key, value):
+        self.config_manager.set_connection_setting(key, value)
+
+    def get_bot_setting(self, key):
+        return self.config_manager.get_bot_setting(key)
+
+    def set_bot_setting(self, key, value):
+        self.config_manager.set_bot_setting(key, value)
+
+    def get_shared_strategy_setting(self, key):
+        return self.config_manager.get_shared_strategy_setting(key)
+
+    def set_shared_strategy_setting(self, key, value):
+        self.config_manager.set_shared_strategy_setting(key, value)
 
     def get_all_strategies(self):
         return self.strategy_manager.get_all_strategies()

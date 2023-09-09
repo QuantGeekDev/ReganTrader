@@ -11,8 +11,7 @@ service = BotService()
 def home():
     if request.method == 'POST':
         bot_action = request.form.get('bot_action')
-        user_config = service.get_settings()
-        if not user_config or not user_config.get('api_key') or not user_config.get('api_secret'):
+        if not service.get_connection_setting('api_key') or not service.get_connection_setting('api_secret'):
             flash('API Key and Secret are required!', 'error')
             return redirect(url_for('settings'))
         if bot_action == 'start':
@@ -34,13 +33,14 @@ def settings():
         if not api_key or not api_secret:
             flash('API Key and Secret are required!', 'error')
         else:
-            service.update_settings({'api_key': api_key, 'api_secret': api_secret, 'paper': paper})
+            service.set_connection_setting('api_key', api_key)
+            service.set_connection_setting('api_secret', api_secret)
+            service.set_connection_setting('paper', paper)
             flash('Settings saved successfully!', 'success')
 
-    user_config = service.get_settings()
-    api_key = user_config.get('api_key') if user_config else None
-    api_secret = user_config.get('api_secret') if user_config else None
-    paper = user_config.get('paper') if user_config else None
+    api_key = service.get_connection_setting('api_key')
+    api_secret = service.get_connection_setting('api_secret')
+    paper = service.get_connection_setting('paper')
     return render_template('settings.html', api_key=api_key, api_secret=api_secret, paper=paper)
 
 @app.route('/strategy', methods=['GET', 'POST'])

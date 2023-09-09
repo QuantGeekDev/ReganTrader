@@ -25,7 +25,7 @@ class CoreBotEngine:
             self.trade_manager = TradeManager(config_manager, account_manager)
             self.order_execution_engine = OrderExecutionEngine(self.config_manager)
             self.is_trading = False
-            self.latest_data_time = None  # Initialize the latest_data_time variable
+            self.latest_data_time = None  # Initialize the la test_data_time variable
         except Exception as e:
             self.logger.error(f"An error occurred during initialization: {e}")
             raise e
