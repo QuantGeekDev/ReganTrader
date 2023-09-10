@@ -1,11 +1,11 @@
-# mac_strategy.py
+# mac_strategy2.py
 
 from .AbstractStrategy import StrategyTemplate
 import pandas as pd
 import numpy as np
-import logging
 
-class MovingAverageCrossover(StrategyTemplate):
+
+class MovingAverageCrossover2(StrategyTemplate):
     def __init__(self, short_window=10, long_window=20, **kwargs):
         super().__init__(**kwargs)
         self.short_window = short_window
@@ -23,7 +23,6 @@ class MovingAverageCrossover(StrategyTemplate):
 
     def calculate_signals(self, data):
         # Update the short and long moving averages
-        logging.info(f'Calculating signals started')
         self.short_mavg = np.append(self.short_mavg, data['close'].mean())
         self.long_mavg = np.append(self.long_mavg, data['close'].mean())
         if len(self.short_mavg) > self.short_window:

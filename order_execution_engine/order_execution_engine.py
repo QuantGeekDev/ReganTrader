@@ -15,30 +15,34 @@ from alpaca.trading.enums import OrderType, OrderSide, TimeInForce
 
 class OrderExecutionEngine:
     def __init__(self, config_manager):
-        user_config = config_manager.get_config('user_config')
+        try:
+            api_key = config_manager.get_connection_setting('api_key')
+            secret_key = config_manager.get_connection_setting('api_secret')
+            paper = config_manager.get_connection_setting('paper')
 
-        api_key = user_config.get('api_key')
-        secret_key = user_config.get('api_secret')
-        paper = user_config.get('paper')
+            # Hardcoding time_in_force and extended_hours for now
+            self.tif = TimeInForce.DAY  # or whatever value you wish
+            self.extended_hours = False  # or True if you need it
 
-        # Log the values before initializing the TradingClient
-        self.logger = logging.getLogger(__name__)
-        self.logger.info(f"Initializing TradingClient with api_key: {api_key}, secret_key: {secret_key}, paper: {paper}")
+            self.logger = logging.getLogger(__name__)
+            self.logger.info(f"Initializing TradingClient with api_key: {api_key}, secret_key: {secret_key}, paper: {paper}")
 
-        self.trading_client = TradingClient(api_key=api_key,
-                                            secret_key=secret_key,
-                                            paper=paper)
-        self.config_manager = config_manager
-        self.extended_hours = config_manager.get_config('extended_hours')
-        self.tif = config_manager.get_config('time_in_force')
-        self.logger = logging.getLogger(__name__)
-        self.order_class_mapping = {
-            OrderType.MARKET: MarketOrderRequest,
-            OrderType.LIMIT: LimitOrderRequest,
-            OrderType.STOP: StopOrderRequest,
-            OrderType.STOP_LIMIT: StopLimitOrderRequest,
-            OrderType.TRAILING_STOP: TrailingStopOrderRequest
-        }
+            self.trading_client = TradingClient(api_key=api_key,
+                                                secret_key=secret_key,
+                                                paper=paper)
+            self.config_manager = config_manager
+            self.logger = logging.getLogger(__name__)
+            self.order_class_mapping = {
+                OrderType.MARKET: MarketOrderRequest,
+                OrderType.LIMIT: LimitOrderRequest,
+                OrderType.STOP: StopOrderRequest,
+                OrderType.STOP_LIMIT: StopLimitOrderRequest,
+                OrderType.TRAILING_STOP: TrailingStopOrderRequest
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to initialize OrderExecutionEngine: {e}")
+
+
 
     def create_order(self, order_type, symbol, qty=None, notional=None, side=OrderSide.BUY, client_order_id=None,
                      order_class=None, take_profit=None, stop_loss=None, limit_price=None, stop_price=None):

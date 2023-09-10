@@ -1,71 +1,102 @@
-import logging
+from database_manager.database_manager import ConnectionSettingsManager, StrategySettingsManager, RiskSettingsManager
 from sqlalchemy.exc import SQLAlchemyError
-from database_manager.database_manager import DatabaseManager, ConnectionSettings, BotSettings, SharedStrategySettings, UserStrategies, \
-    StrategySettings
+import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class ConfigurationManager:
-    def __init__(self, db_manager: DatabaseManager):
-        self.db_manager = db_manager
-
-    def _get_setting(self, key, table_class):
+    def __init__(self, db_url):
         try:
-            return self.db_manager.get_record(table_class, key)
+            self.conn_manager = ConnectionSettingsManager(db_url)
+            self.strategy_manager = StrategySettingsManager(db_url)
+            self.risk_manager = RiskSettingsManager(db_url)
+            logger.info("ConfigurationManager initialized successfully.")
         except SQLAlchemyError as e:
-            logging.error(f"Error retrieving setting {key} from {table_class.__tablename__}: {e}")
-            raise
+            logger.error(f"Failed to initialize ConfigurationManager: {e}")
 
-    def _set_setting(self, key, value, table_class):
-        try:
-            self.db_manager.insert_or_update_record(table_class, key, value)
-        except SQLAlchemyError as e:
-            logging.error(f"Error setting {key} in {table_class.__tablename__}: {e}")
-            raise
-
+    # Connection Settings
     def get_connection_setting(self, key):
-        return self._get_setting(key, ConnectionSettings)
+        try:
+            conn_settings = self.conn_manager.get(filter_by={'id': 1})
+            return getattr(conn_settings, key, None)
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to get connection setting: {e}")
+            return None
 
     def set_connection_setting(self, key, value):
-        self._set_setting(key, value, ConnectionSettings)
+        try:
+            existing_setting = self.conn_manager.get(filter_by={'id': 1})
+            if existing_setting is None:
+                logging.info("No existing connection settings found. Creating new record.")
+                self.conn_manager.add(id=1, **{key: value})
+            else:
+                self.conn_manager.update(filter_by={'id': 1}, **{key: value})
+        except SQLAlchemyError as e:
+            logging.error(f"Database error in set_connection_setting: {str(e)}")
 
-    def get_bot_setting(self, key):
-        return self._get_setting(key, BotSettings)
+    # Get strategy settings
+    def get_strategy_setting(self, key):
+        try:
+            strategy_settings = self.strategy_manager.get(filter_by={'id': 1})
+            return getattr(strategy_settings, key, None)
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to get strategy setting: {e}")
+            return None
 
-    def set_bot_setting(self, key, value):
-        self._set_setting(key, value, BotSettings)
+    def set_strategy_setting(self, key, value):
+        try:
+            existing_setting = self.strategy_manager.get(filter_by={'id': 1})
+            if existing_setting is None:
+                logger.info("No existing strategy settings found. Creating new record.")
+                self.strategy_manager.add(id=1, **{key: value})
+            else:
+                self.strategy_manager.update(filter_by={'id': 1}, **{key: value})
+            logger.info(f"Set strategy setting {key} to {value}.")
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to set strategy setting: {e}")
 
-    def get_shared_strategy_setting(self, key):
-        return self._get_setting(key, SharedStrategySettings)
 
-    def set_shared_strategy_setting(self, key, value):
-        self._set_setting(key, value, SharedStrategySettings)
+    # Strategy Management
+    def get_all_strategies(self):
+        return self.strategy_manager.get_all_strategies()
 
-    def get_strategy_parameters(self, strategy_name):
-        return self._get_setting(strategy_name, StrategySettings)
-
-    def set_strategy_parameters(self, strategy_name, parameters):
-        self._set_setting(strategy_name, parameters, StrategySettings)
 
     def set_active_strategy(self, strategy_name):
-        self._set_setting('active_strategy', strategy_name, UserStrategies)
+        try:
+            existing_strategy = self.strategy_manager.get(filter_by={'id': 1})
+            if existing_strategy is None:
+                logger.info("No existing active strategy found. Creating new record.")
+                self.strategy_manager.add(id=1, strategy_name=strategy_name)
+            else:
+                self.strategy_manager.update(filter_by={'id': 1}, strategy_name=strategy_name)
+            logger.info(f"Set active strategy to {strategy_name}.")
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to set active strategy: {e}")
 
     def get_active_strategy(self):
-        return self._get_setting('active_strategy', UserStrategies)
+        try:
+            strategy_settings = self.strategy_manager.get(filter_by={'id': 1})
+            if strategy_settings is None:
+                logger.warning("No active strategy found. You may need to set one.")
+                return None
+            return getattr(strategy_settings, 'strategy_name', None)
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to get active strategy: {e}")
+            return None
 
-    def store_strategy(self, strategy_name: str, is_purchased: bool, is_active: bool):
-        self._set_setting(strategy_name, {'is_purchased': is_purchased, 'is_active': is_active}, UserStrategies)
+    # Risk Settings
+    def get_risk_setting(self, key):
+        try:
+            risk_settings = self.risk_manager.get(filter_by={'id': 1})
+            return getattr(risk_settings, key, None)
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to get risk setting: {e}")
+            return None
 
-    def retrieve_strategy(self, strategy_name: str):
-        strategy_data = self._get_setting(strategy_name, UserStrategies)
-        if strategy_data:
-            return strategy_data.get('is_purchased'), strategy_data.get('is_active')
-        return None, None
-
-# Uncomment the following lines to test the class.
-db_manager = DatabaseManager()
-config_manager = ConfigurationManager(db_manager)
-config_manager.set_connection_setting('api_key', 'testingthisshit')
-print(config_manager.get_connection_setting('api_key'))
-print(config_manager.get_connection_setting('api_secret'))
+    def set_risk_setting(self, key, value):
+        try:
+            self.risk_manager.update(filter_by={'id': 1}, **{key: value})
+            logger.info(f"Updated risk setting {key} to {value}.")
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to update risk setting: {e}")

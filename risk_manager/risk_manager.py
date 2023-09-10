@@ -14,11 +14,11 @@ class RiskManager:
     def update_parameters(self):
         """
         Retrieve the risk parameters from the ConfigurationManager.
-        """
-        self.max_exposure = self.config_manager.get_config("max_exposure")
-        self.max_drawdown = self.config_manager.get_config("max_drawdown")
-        self.leverage = self.config_manager.get_config("leverage")
-        self.margin_requirement = self.config_manager.get_config("margin_requirement")
+        # """
+        # self.max_exposure = self.config_manager.get_config("max_exposure")
+        # self.max_drawdown = self.config_manager.get_config("max_drawdown")
+        # self.leverage = self.config_manager.get_config("leverage")
+        # self.margin_requirement = self.config_manager.get_config("margin_requirement")
 
     def calculate_volatility(self, returns):
         """

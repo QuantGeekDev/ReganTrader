@@ -20,61 +20,90 @@ class StrategyManager:
             # Add more mappings as needed
         }
 
+    def load_available_strategies(self):
+        self.strategy_dict = {}
+        strategy_folder = os.path.join(os.path.dirname(__file__), 'strategies')
+        for filename in os.listdir(strategy_folder):
+            if filename.endswith('.py') and filename != 'AbstractStrategy.py':
+                strategy_name = filename[:-3]  # Remove .py
+                strategy_module = importlib.import_module(f'.strategies.{strategy_name}', package='strategy_manager')
+                self.strategy_dict[strategy_name] = getattr(strategy_module, strategy_name)
     def get_all_strategies(self):
-        strategies_folder = os.path.join(os.path.dirname(__file__), "strategies")
-        return [file[:-3] for file in os.listdir(strategies_folder) if file.endswith('.py') and file != "__init__.py"]
+        return list(self.strategy_dict.keys())
 
     def load_strategy(self, strategy_name):
-        """
-        Load a trading strategy by its name. The strategy parameters are fetched from the database.
-        If no parameters are found, the strategy is instantiated with its default parameters.
-        """
         try:
-            self.strategy_parameters = self.config_manager.get_strategy_parameters(strategy_name)
+            # Commenting out the line that fetches strategy parameters
+            # self.strategy_parameters = self.config_manager.get_strategy_parameters(strategy_name)
 
-            # Get the filename corresponding to the strategy name
-            strategy_module_name = self.strategy_map.get(strategy_name)
+            strategy_class = self.strategy_dict.get(strategy_name)
+            if strategy_class is None:
+                logging.error(f"Invalid strategy name: {strategy_name}")
+                return None
 
-            if not strategy_module_name:
-                raise ValueError(f"Invalid strategy name: {strategy_name}")
-
-            # Add debug logs to track the import process
-            logging.debug(f"Importing strategy module: {strategy_module_name}")
-            strategy_module = importlib.import_module(f'.strategies.{strategy_module_name}', package='strategy_manager')
-
-            # Check if the strategy class exists in the module
-            if not hasattr(strategy_module, strategy_name):
-                raise AttributeError(f"Strategy class {strategy_name} not found in module {strategy_module_name}")
-
-            strategy_class = getattr(strategy_module, strategy_name)
-
-            if self.strategy_parameters:
-                # If parameters for the strategy were found in the database, use them to instantiate the strategy
-                try:
-                    self.strategy = strategy_class(**self.strategy_parameters)
-                    logging.info(f"Loaded strategy {strategy_name} with parameters {self.strategy_parameters}")
-                except TypeError:
-                    logging.error(
-                        f"The parameters in the database do not match the expected parameters"
-                        f" for the strategy {strategy_name}")
-                    raise
-            else:
-                # If no parameters were found in the database, instantiate the strategy with its default parameters
-                self.strategy = strategy_class()
-                logging.info(f"Loaded strategy {strategy_name} with default parameters")
+            # Instantiate the strategy without any parameters
+            self.strategy = strategy_class()
+            logging.info(f"Loaded strategy {strategy_name} with default parameters: {self.strategy.__dict__}")
 
             self.strategy_registry[strategy_name] = strategy_class  # Add strategy to the registry
             self.set_strategy_active(strategy_name)  # Set this strategy as active
-
-        except ImportError as e:
-            logging.error(f"Error importing strategy {strategy_name}: {e}")
-            raise
-        except AttributeError as e:
-            logging.error(f"Error loading strategy {strategy_name}: {e}")
-            raise
+            return self.strategy
         except Exception as e:
             logging.error(f"Unhandled error loading strategy {strategy_name}: {e}")
             raise
+    # def load_strategy(self, strategy_name):
+    #     """
+    #     Load a trading strategy by its name. The strategy parameters are fetched from the database.
+    #     If no parameters are found, the strategy is instantiated with its default parameters.
+    #     """
+    #     try:
+    #         self.strategy_parameters = self.config_manager.get_strategy_parameters(strategy_name)
+    #
+    #         # Get the filename corresponding to the strategy name
+    #         strategy_module_name = importlib.import_module(f'.strategies.{strategy_name}', package='strategy_manager')
+    #
+    #         if not strategy_module_name:
+    #             raise ValueError(f"Invalid strategy name: {strategy_name}")
+    #
+    #         # Add debug logs to track the import process
+    #         logging.debug(f"Importing strategy module: {strategy_module_name}")
+    #         strategy_module = importlib.import_module(f'.strategies.{strategy_module_name}', package='strategy_manager')
+    #
+    #         # Check if the strategy class exists in the module
+    #         if not hasattr(strategy_module, strategy_name):
+    #             raise AttributeError(f"Strategy class {strategy_name} not found in module {strategy_module_name}")
+    #
+    #         strategy_class = self.strategy_dict.get(strategy_name)
+    #         if strategy_class is None:
+    #             raise ValueError(f"Invalid strategy name: {strategy_name}")
+    #
+    #         if self.strategy_parameters:
+    #             # If parameters for the strategy were found in the database, use them to instantiate the strategy
+    #             try:
+    #                 self.strategy = strategy_class(**self.strategy_parameters)
+    #                 logging.info(f"Loaded strategy {strategy_name} with parameters {self.strategy_parameters}")
+    #             except TypeError:
+    #                 logging.error(
+    #                     f"The parameters in the database do not match the expected parameters"
+    #                     f" for the strategy {strategy_name}")
+    #                 raise
+    #         else:
+    #             # If no parameters were found in the database, instantiate the strategy with its default parameters
+    #             self.strategy = strategy_class()
+    #             logging.info(f"Loaded strategy {strategy_name} with default parameters")
+    #
+    #         self.strategy_registry[strategy_name] = strategy_class  # Add strategy to the registry
+    #         self.set_strategy_active(strategy_name)  # Set this strategy as active
+    #
+    #     except ImportError as e:
+    #         logging.error(f"Error importing strategy {strategy_name}: {e}")
+    #         raise
+    #     except AttributeError as e:
+    #         logging.error(f"Error loading strategy {strategy_name}: {e}")
+    #         raise
+    #     except Exception as e:
+    #         logging.error(f"Unhandled error loading strategy {strategy_name}: {e}")
+    #         raise
 
     def set_strategy_active(self, strategy_name):
         """

@@ -1,11 +1,15 @@
 # ui_server.py
 from flask import Flask, render_template, request, flash, redirect, url_for
-import threading
+import os
 from bot_service.bot_service import BotService
 
 app = Flask(__name__)
 app.secret_key = 'unpredictablekey'  # This should be a secure, unpredictable key
-service = BotService()
+
+# Construct the database URL
+db_url = "sqlite:///" + os.path.join(os.path.dirname(__file__), "..", "database", "trading_bot.db")
+
+service = BotService(db_url)
 
 @app.route('/', methods=['GET', 'POST'])
 def home():

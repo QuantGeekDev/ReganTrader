@@ -1,95 +1,93 @@
-from sqlalchemy import create_engine, Column, String, Integer, Text, Boolean, select, insert, update
+# database_manager.py
+
+from sqlalchemy import Column, Integer, String, Boolean, create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.exc import SQLAlchemyError
-from cryptography.fernet import Fernet
-import json
+from sqlalchemy.orm import sessionmaker
 import logging
-
-logging.basicConfig(level=logging.DEBUG)
-KEY = b'gkqJ7l5FqJvqe7MqaQSKG5Pl2KZvj2ho5Vgbv4E6UJQ='
-
+from sqlalchemy.exc import SQLAlchemyError
 Base = declarative_base()
 
 
-# Define table classes
 class ConnectionSettings(Base):
     __tablename__ = 'connection_settings'
-    key = Column(String, primary_key=True)
-    value = Column(Text)
-
-
-class BotSettings(Base):
-    __tablename__ = 'bot_settings'
-    key = Column(String, primary_key=True)
-    value = Column(Text)
-
-
-class SharedStrategySettings(Base):
-    __tablename__ = 'shared_strategy_settings'
-    key = Column(String, primary_key=True)
-    value = Column(Text)
-
-
-class UserStrategies(Base):
-    __tablename__ = 'user_strategies'
     id = Column(Integer, primary_key=True)
-    strategy_name = Column(String, nullable=False)
-    is_purchased = Column(Boolean, nullable=False, default=False)
-    is_active = Column(Boolean, nullable=False, default=False)
+    api_key = Column(String)
+    api_secret = Column(String)
+    paper = Column(Boolean)
 
 
 class StrategySettings(Base):
     __tablename__ = 'strategy_settings'
-    strategy_name = Column(String, primary_key=True)
-    parameters = Column(Text)
+    id = Column(Integer, primary_key=True)
+    strategy_name = Column(String)
+    parameter1 = Column(Integer)
+    trading_interval = Column(Integer)
+    data_update_interval = Column(Integer)
+    start_time = Column(String)
+    end_time = Column(String)
+    limit = Column(Integer)
+    feed = Column(String)
+    timeframe = Column(String)
+
+class RiskSettings(Base):
+    __tablename__ = 'risk_settings'
+    id = Column(Integer, primary_key=True)
+    # Add your fields here, for example:
+    max_loss = Column(Integer)
+    max_trade = Column(Integer)
 
 
-class DatabaseManager:
-    def __init__(self, db_path='sqlite:///trading_bot.db'):
-        self.engine = create_engine(db_path, echo=True)
+class DatabaseManagerBase:
+    def __init__(self, db_url, model_class):
+        self.engine = create_engine(db_url)
         Base.metadata.create_all(self.engine)
+        self.Session = sessionmaker(bind=self.engine)
+        self.model_class = model_class
 
-    def _encrypt(self, data):
-        fernet = Fernet(KEY)
-        data = json.dumps(data)
-        encrypted_data = fernet.encrypt(data.encode())
-        return encrypted_data.decode()
+    def add(self, **kwargs):
+        session = self.Session()
+        new_instance = self.model_class(**kwargs)
+        session.add(new_instance)
+        session.commit()
 
-    def _decrypt(self, encrypted_data):
-        fernet = Fernet(KEY)
-        decrypted_data = fernet.decrypt(encrypted_data.encode())
-        return json.loads(decrypted_data.decode())
+    def get(self, filter_by=None):
+        session = self.Session()
+        query = session.query(self.model_class)
+        if filter_by:
+            query = query.filter_by(**filter_by)
+        return query.first()
 
-    def insert_or_update_record(self, table_class, key, value):
+    def update(self, filter_by, **kwargs):
+        session = self.Session()
         try:
-            value = self._encrypt(value)
-            with self.engine.begin() as connection:
-                stmt = (
-                    update(table_class)
-                    .where(table_class.key == key)
-                    .values(value=value)
-                    .execution_options(synchronize_session="fetch")
-                )
-
-                if connection.execute(stmt).rowcount == 0:
-                    connection.execute(insert(table_class).values(key=key, value=value))
-
-            logging.info(f"Record {key} in {table_class.__tablename__} updated successfully.")
-
+            instance = session.query(self.model_class).filter_by(**filter_by).first()
+            if instance is None:
+                logging.error(f"No record found for filter: {filter_by}")
+                return
+            for key, value in kwargs.items():
+                setattr(instance, key, value)
+            session.commit()
         except SQLAlchemyError as e:
-            logging.error(f"Error in insert_or_update_record: {e}")
-            raise
+            logging.error(f"Database error during update: {str(e)}")
+            session.rollback()
 
-    def get_record(self, table_class, key):
-        try:
-            with self.engine.begin() as connection:
-                stmt = select(table_class.value).where(table_class.key == key)
-                result = connection.execute(stmt)
-                row = result.fetchone()
+    def delete(self, filter_by):
+        session = self.Session()
+        instance = session.query(self.model_class).filter_by(**filter_by).first()
+        session.delete(instance)
+        session.commit()
 
-                return self._decrypt(row[0]) if row is not None else None
 
-        except SQLAlchemyError as e:
-            logging.error(f"Error in get_record: {e}")
-            raise
+class ConnectionSettingsManager(DatabaseManagerBase):
+    def __init__(self, db_url):
+        super().__init__(db_url, ConnectionSettings)
 
+
+class StrategySettingsManager(DatabaseManagerBase):
+    def __init__(self, db_url):
+        super().__init__(db_url, StrategySettings)
+
+
+class RiskSettingsManager(DatabaseManagerBase):
+    def __init__(self, db_url):
+        super().__init__(db_url, RiskSettings)
